@@ -1,0 +1,33 @@
+{
+  "siddur": {
+    "title": "שם הסידור",
+    "subtitle": "נוסח ומהדורה",
+    "language": "he",
+    "direction": "rtl"
+  },
+  "render": {
+    "dpi": 180,
+    "format": "webp",
+    "quality": 86
+  },
+  "blocks": [
+    {
+      "id": "example-opening",
+      "title": "קטע לדוגמה",
+      "pages": [1, 2]
+    },
+    {
+      "id": "example-closing",
+      "title": "סיום לדוגמה",
+      "pages": [3]
+    }
+  ],
+  "publications": [
+    {
+      "id": "example-prayer",
+      "title": "תפילה לדוגמה",
+      "blocks": ["example-opening", "example-closing"]
+    }
+  ]
+}
+

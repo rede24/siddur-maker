@@ -1,93 +1,133 @@
-# Agent Instructions — Siddur Maker
+# Siddur Maker — instructions for coding agents
 
-Read this file completely before changing the repository.
+Read this file completely before editing.
 
-## Mission
+## Goal
 
-Convert the siddur PDF placed in `source/` into a modular static publication.
-The user should be able to review the result locally and publish it later by
-their own chosen method.
+Turn the PDF files placed in `source/` into a complete Hebrew RTL Siddur PWA.
+The finished app must preserve the architecture, reader behavior, visual design,
+offline support and recursive LEGO block model inherited from `rede24/siddur`.
 
-**Do not deploy, configure hosting, create cloud resources, or publish to a
-third-party service unless the user explicitly requests that separate action.**
+The output is the repository's `public/` directory. **Do not deploy it, connect
+hosting, create cloud resources, or add deployment credentials.** Publishing in
+this workflow means preparing and committing the finished static publication.
 
-## Non-negotiable content rules
+## Architecture that must remain
 
-1. Treat prayer text as sensitive source material: do not rewrite, OCR-replace,
-   normalize, translate, or correct it silently.
-2. Preserve full source pages. Never crop out a prayer, concluding line, header,
-   or mixed-use page merely because part of the page is not needed.
-3. Page numbers in `plans/page-plan.json` are 1-based PDF page numbers.
-4. Do not guess page boundaries from thumbnails alone. Inspect the first and
-   last page of every proposed block at readable resolution.
-5. Decorative covers, publisher ads, blank scanner pages, and duplicate scans
-   may be excluded, but record each exclusion in `review/exclusions.md` with a
-   reason.
-6. If a boundary or liturgical order is uncertain, record it in
-   `review/open-questions.md`; do not conceal uncertainty.
-7. Keep the reader RTL-first. Forward navigation for Hebrew content must feel
-   like progressing through a Hebrew book.
+- `public/block-engine.js`: generic primitives, groups, references and conditions.
+- `public/block-catalog.js`: full-page primitives and reusable prayer groups.
+- `public/prayer-recipes.js`: service recipes built only from catalog references.
+- `public/calendar.js`: Hebrew calendar and daily facts.
+- `public/prayer-blocks.js`: resolves the daily tree and reader assets.
+- `public/book-reader.js`: RTL book reader, swipe, fold, zoom and lifecycle.
+- `public/app.js`: home screen, daily plan, navigation and reader integration.
+- `public/sw.js`: offline shell and page cache.
+
+Do not replace this architecture with a generic gallery, PDF iframe, or a new
+framework. Extend the existing modules.
+
+## Source rules
+
+1. Never edit the source PDF.
+2. Never OCR-replace, rewrite, correct, translate or normalize prayer text.
+3. Use complete source pages only. Never crop a mixed page to hide conditional
+   text. Preserving every required word is more important than hiding extra text.
+4. Remove only covers, blank scans, advertisements, duplicate scans and standalone
+   instruction/note pages. Record every removal in `review/exclusions.md`.
+5. Inspect every boundary at readable resolution. Thumbnails alone are not proof.
+6. If the source is incomplete or the liturgical order is uncertain, document the
+   gap in `review/open-questions.md` and ask the user. Do not invent content.
+7. Keep all PDF files ignored by Git unless the user explicitly confirms they may
+   be redistributed.
 
 ## Required workflow
 
-### 1. Discover and inspect
-
-- Confirm there is exactly one PDF in `source/`, unless the user explicitly
-  describes a multi-volume siddur.
-- Run `python scripts/inspect_pdf.py`.
-- Inspect `review/contact-sheets/` and then inspect boundary pages individually.
-- Record the PDF filename, page count, and any scan anomalies in
-  `review/source-audit.md`.
-
-### 2. Create the page plan
-
-- Copy `plans/page-plan.example.json` to `plans/page-plan.json`.
-- Define small reusable blocks first (the LEGO pieces).
-- Define publications second by ordering block IDs.
-- Use stable lowercase IDs with hyphens. Do not encode page numbers in IDs.
-- A block can be reused by multiple publications without duplicating assets.
-- Include a short Hebrew title for each user-facing block and publication.
-
-### 3. Verify liturgical order
-
-- Compare every publication against the source siddur's own table of contents
-  and internal headings.
-- Check joins between blocks: the final words of the prior block and the first
-  words of the next block must form a valid continuous order.
-- Ensure no required words disappear at boundaries.
-- Do not make date/holiday logic unless the plan explicitly models it.
-
-### 4. Validate and build
+### 1. Audit and extract
 
 ```bash
-python scripts/validate_plan.py
-python scripts/build.py
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python tools/inspect_pdf.py
 ```
 
-- Fix every validation error.
-- Serve `output/` locally and test desktop plus a narrow mobile viewport.
-- Test menu, forward/back, swipe, keyboard navigation, zoom, refresh, and
-  opening a second publication after returning to the menu.
-- Confirm there are no blank flashes or missing image requests.
+- Confirm the number of source volumes and their order.
+- Complete `review/source-audit.md`.
+- Inspect the generated contact sheets and each proposed boundary page.
+- Copy approved full-page JPEG assets into `public/pages/` using stable IDs.
 
-### 5. Report
+### 2. Build the LEGO catalog
 
-Tell the user:
+- Start with page primitives.
+- Group primitives into the smallest reusable prayer sections.
+- Group those sections into larger sequences.
+- Define final service recipes last.
+- Use stable semantic group IDs; page numbers belong only in page primitives.
+- Reuse shared groups instead of copying page arrays.
+- Keep declarative conditions serializable; do not place callback functions in
+  recipes or catalog data.
 
-- what publications were created;
-- what pages were excluded and why;
-- any open questions requiring human judgment;
-- the exact local preview command.
+Read `docs/building-blocks.md` before editing the catalog.
 
-Do not claim deployment or public availability.
+### 3. Adapt the application
 
-## File ownership
+- Update the Siddur name, nusach, subtitle, colors and icon references.
+- Update home-screen prayer cards and quick-start anchors from the actual source.
+- Adapt `calendar.js` only for verified customs of the requested nusach.
+- Update `CACHE` in `sw.js` whenever published assets or code change.
+- Preserve real Hebrew-book navigation: forward progress follows the existing
+  Hebrew swipe contract.
+- Do not add explanatory banner pages between prayer pages.
 
-- Human/source input: `source/`
-- Agent-authored semantic plan: `plans/page-plan.json`
-- Review evidence and uncertainties: `review/`
-- Generated publication: `output/`
-- Generator implementation: `scripts/` and `reader/`
+### 4. Verify religious continuity
 
-Do not modify the source PDF.
+For every recipe and conditional branch:
+
+- inspect the final words before each join and the first words after it;
+- verify no required ending is lost on a page that also begins optional text;
+- compare against the source table of contents and internal headings;
+- check weekday, Monday/Thursday, Rosh Chodesh, no-Tachanun, Hallel, Musaf,
+  seasonal and relevant holiday branches;
+- never treat HTTP success or a clean screenshot as liturgical correctness.
+
+### 5. Test
+
+```bash
+npm install
+npm test
+npm run test:browser
+```
+
+- Add unit tests for each important calendar/recipe boundary.
+- Adapt browser quick-start selectors to the new source page IDs.
+- Test a narrow iPhone viewport and landscape.
+- Test forward/back fold, slow drag, cancelled drag, keyboard, pinch/zoom,
+  closing and reopening, refresh, missing assets and offline mode.
+- Fix every failed request, blank page and stale service-worker cache issue.
+
+### 6. Publish inside the repository
+
+- Ensure `public/` contains only the finished static application and approved
+  page assets.
+- Commit code, tests, documentation and allowed assets.
+- Do not run Wrangler, Pages, GitHub Pages or any other deployment command.
+- Report what was included, excluded, still uncertain and how to preview locally.
+
+## Required review files
+
+- `review/source-audit.md`
+- `review/exclusions.md`
+- `review/open-questions.md`
+
+Copy the corresponding `.example.md` files before starting a new Siddur.
+
+## Definition of done
+
+- The app uses the inherited Siddur UI and reader, not a substitute.
+- Every displayed image is a complete source page.
+- Every recipe resolves without missing references or cycles.
+- Required prayer words are not lost at page or block boundaries.
+- Unit and browser tests pass.
+- The app works offline after its first complete load.
+- No deployment was performed.
 

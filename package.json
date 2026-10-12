@@ -1,0 +1,15 @@
+{
+  "name": "siddur-maker-template",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "python3 -m http.server 4173 --directory public",
+    "test": "node --test test/*.test.js",
+    "test:browser": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.51.1"
+  }
+}
+
